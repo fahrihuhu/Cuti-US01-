@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manajemen Cuti</title>
+<style>
+:root{--ink:#0c1a2b;--board:#ffc93c;--mist:#e8eef5;--paper:#fff;--ok:#17806f;--bad:#c7452a;--line:#cfd9e5;--mute:#5b6b7d}
+*{box-sizing:border-box}body{margin:0;background:var(--mist);color:var(--ink);font:16px/1.5 Bahnschrift,"DIN Alternate","Segoe UI",system-ui,sans-serif}
+header{background:var(--ink);color:#fff;padding:20px 24px 0}
+.top{max-width:980px;margin:auto;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:28px;letter-spacing:.5px}h1 b{color:var(--board)}
+.who{display:flex;gap:8px;flex-wrap:wrap}.who button{background:#17304d;color:#cfe0f3;border:1px solid #284a70;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit}
+.who button[aria-pressed=true]{background:var(--board);color:var(--ink);border-color:var(--board);font-weight:700}
+nav{max-width:980px;margin:18px auto 0;display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:transparent;color:#9fb6d0;border:0;border-bottom:4px solid transparent;padding:10px 16px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{color:#fff;border-color:var(--board)}
+main{max-width:980px;margin:24px auto;padding:0 16px 60px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--board);outline-offset:2px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
+input,select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;min-width:150px;background:#fff;color:var(--ink)}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:10px 18px;font:inherit;font-weight:700;cursor:pointer}
+.btn:hover{background:#17304d}.btn.alt{background:var(--board);color:var(--ink)}.btn.danger{background:var(--bad)}.btn[disabled]{opacity:.4;cursor:not-allowed}
+.pass{display:grid;grid-template-columns:1fr auto;background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.pass .l{padding:14px 18px;display:grid;gap:4px}.pass .r{padding:14px 18px;border-left:2px dashed var(--line);display:grid;gap:6px;align-content:center;justify-items:end;min-width:190px}
+.route{display:flex;align-items:center;gap:14px;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.route small{display:block;font-size:13px;font-weight:400;color:var(--mute)}.route .arr{color:var(--mute);font-size:18px}
+.meta{color:var(--mute);font-size:14px}.price{font-size:22px;font-weight:700}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--mist)}
+.badge.Booked{background:#fff1c2}.badge.Confirmed{background:#cdeee7;color:var(--ok)}.badge.Cancelled{background:#f7d9d2;color:var(--bad)}.badge.Waiting{background:#dbe6f6}
+.empty{padding:28px;text-align:center;color:var(--mute);border:2px dashed var(--line);border-radius:10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%}
+#toast.on{opacity:1}#toast.err{background:var(--bad)}
+@media(max-width:600px){.pass{grid-template-columns:1fr}.pass .r{border-left:0;border-top:2px dashed var(--line);justify-items:start}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<header><div class="top"><h1>Manajemen <b>Cuti</b></h1><span style="color:#9fb6d0">HRD Manajer</span></div><div style="height:20px"></div></header>
+<main id="main"></main><div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+async function call(url){const r=await fetch(url);const d=await r.json();if(!r.ok)throw new Error(d.error);return d}
+function toast(t,err){const e=$("#toast");e.textContent=t;e.className="on"+(err?" err":"");clearTimeout(toast.t);toast.t=setTimeout(()=>e.className="",3200)}
+const guard=f=>async(...a)=>{try{await f(...a)}catch(e){toast(e.message,1)}};
+function vCuti(){
+ $("#main").innerHTML=`<div class="panel"><div class="row"><label>Tahun<input id="th" type="number" value="2026"></label><label>Bulan (opsional)<select id="bl"><option value="">Semua</option>${[...Array(12)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`)}</select></label><label>Tanggal (opsional)<input id="tl" type="number" min="1" max="31"></label><button class="btn alt" id="go">Lihat pengajuan</button></div></div><div id="hasil"></div><div id="rw"></div>`;
+ $("#go").onclick=guard(async()=>{const r=await call(`/api/cuti?tahun=${$("#th").value}&bulan=${$("#bl").value}&tanggal=${$("#tl").value}`);
+  $("#rw").innerHTML="";$("#hasil").innerHTML=r.length?r.map(p=>`<div class="pass"><div class="l"><b>${p.nama}</b><div class="meta">${p.mulai} s.d. ${p.selesai}</div></div><div class="r"><div class="price">${p.lama} hari</div><button class="btn" onclick="riwayat('${p.nip}')">Riwayat & sisa cuti</button></div></div>`).join(""):`<div class="empty">Tidak ada pengajuan cuti pada periode ini.</div>`})}
+const riwayat=guard(async nip=>{const r=await call(`/api/cuti/riwayat?nip=${nip}&tahun=${$("#th").value}`);
+ $("#rw").innerHTML=`<div class="panel"><b>${r.nama}</b> · sisa cuti tahun ini: <b>${r.sisa??"-"} hari</b>${r.riwayat.map(p=>`<div class="meta">${p.mulai} s.d. ${p.selesai} (${p.lama} hari, ${p.jenis})</div>`).join("")}</div>`;$("#rw").scrollIntoView({behavior:"smooth"})});
+vCuti();
+</script></body></html>
